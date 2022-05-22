@@ -22,8 +22,6 @@ public class BasicUserControllerAdvice extends ResponseEntityExceptionHandler {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        ex.printStackTrace();
-
         try {
             if (ex instanceof RestRuntimeException) {
                 RestRuntimeException exception = (RestRuntimeException) ex;
@@ -39,7 +37,6 @@ public class BasicUserControllerAdvice extends ResponseEntityExceptionHandler {
 
             return handleExceptionInternal(ex, "{\"error\":" + data + "}", httpHeaders, errorObject.getStatus(), request);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
             return handleExceptionInternal(ex, "{\"error\":" + "Json Processing Exception!" + "}", httpHeaders, HttpStatus.INTERNAL_SERVER_ERROR, request);
         }
     }

@@ -13,33 +13,44 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.ConnectException;
+
 @Component
 public class DiscoveryStartup implements ApplicationRunner {
     Logger logger = LoggerFactory.getLogger(DiscoveryStartup.class);
 
     @Value("${server.port}")
     private int serverPort;
-    
+
     @Override
-    public void run(ApplicationArguments args) {
-        logger.info("Registering service");
+    public void run(ApplicationArguments args) throws InterruptedException {
+        if (args.containsOption("noDiscovery")){
+            System.out.println("noDiscovery passed. Skipping step.");
+            return;
+        }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        try {
+            logger.info("Attempting to register service");
 
-        RegisterRequest registerRequest = new RegisterRequest("localhost:" + serverPort, "account", "ROLE_USER");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<RegisterRequest> request = new HttpEntity<>(registerRequest, headers);
+            RegisterRequest registerRequest = new RegisterRequest("localhost:" + serverPort, "account");
+            registerRequest.add("/users", false);
+            registerRequest.add("/users/{username}", false);
 
-        //TODO: Dynamically get the common.discovery service!
-        RestTemplate restTemplate = new RestTemplate();
+            //Deny proxy users access.
+            registerRequest.add("/users/{username}/validate-password", true);
 
-        //Print out the response of the request.
-        logger.info(restTemplate.postForObject("http://localhost:8082/services/register", request, SystemMessage.class).getMessage());
-    }
+            HttpEntity<RegisterRequest> request = new HttpEntity<>(registerRequest, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            System.out.println(restTemplate.postForObject("http://localhost:8082/services/register", request, SystemMessage.class).getMessage());
+
+        }catch (Exception e){
+            System.out.println("Failed to register. Retrying in 5s");
+            Thread.sleep(5 * 1000);
+            run(args);
+        }
+   }
 }
-
-
-
-
-
